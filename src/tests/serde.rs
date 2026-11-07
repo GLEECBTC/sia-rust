@@ -88,7 +88,8 @@ mod test {
         }};
     }
     // Ensure the original value matches the value after round-trip (serialize -> deserialize -> serialize)
-    use crate::types::{Address, Event, Hash256, SiacoinElement, SiacoinOutput, StateElement, UnlockKey, V2Transaction};
+    use crate::types::{Address, ChainIndexElement, Event, Hash256, SiacoinElement, SiacoinOutput, StateElement,
+                       UnlockKey, V2StorageProof, V2Transaction};
 
     cross_target_tests! {
             fn test_serde_address() {
@@ -622,6 +623,49 @@ mod test {
         let j2 = serde_json::to_value(&tx).unwrap().to_string();
         let tx2 = serde_json::from_str::<V2Transaction>(&j2).unwrap();
         assert_eq!(tx, tx2);
+    }
+
+    fn test_serde_chain_index_element() {
+        // ChainIndexElement has a nested (not flattened) stateElement and an explicit block id
+        // https://github.com/SiaFoundation/core/blob/714cad6889ae00845063458b07f8b0a4dbb8d26f/types/types.go#L748-L753
+        test_serde!(
+            ChainIndexElement,
+            json!({
+                "id": "22693d8885ad7b5e2abf22fe838fd6ae9856142f898607ffd2ddb8dd3d7ca67b",
+                "stateElement": {
+                    "leafIndex": 190,
+                    "merkleProof": [
+                        "16406893374eb18eeea95e8c0d6b6c325275ecb99cf2fec7a6708b0b8def75bd"
+                    ]
+                },
+                "chainIndex": {
+                    "height": 190,
+                    "id": "22693d8885ad7b5e2abf22fe838fd6ae9856142f898607ffd2ddb8dd3d7ca67b"
+                }
+            })
+        );
+    }
+
+    fn test_serde_v2_storage_proof_null_proof() {
+        let j = json!({
+            "proofIndex": {
+                "id": "22693d8885ad7b5e2abf22fe838fd6ae9856142f898607ffd2ddb8dd3d7ca67b",
+                "stateElement": {
+                    "leafIndex": 190
+                },
+                "chainIndex": {
+                    "height": 190,
+                    "id": "22693d8885ad7b5e2abf22fe838fd6ae9856142f898607ffd2ddb8dd3d7ca67b"
+                }
+            },
+            "leaf": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "proof": null
+        });
+        let proof = serde_json::from_value::<V2StorageProof>(j).unwrap();
+        let j2 = serde_json::to_value(&proof).unwrap();
+        assert_eq!(j2["proof"], json!([]));
+        assert_eq!(j2["proofIndex"]["stateElement"]["merkleProof"], json!([]));
+        assert_eq!(serde_json::from_value::<V2StorageProof>(j2).unwrap(), proof);
     }
 
     }
