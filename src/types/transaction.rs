@@ -789,7 +789,6 @@ pub enum ResolutionType {
     Expiration,
 }
 
-
 #[derive(Clone, Debug, Serialize, PartialEq)]
 pub struct V2FileContractResolution {
     pub parent: V2FileContractElement,
@@ -948,6 +947,7 @@ impl Encodable for V2FileContractRenewal {
 pub struct V2StorageProof {
     proof_index: ChainIndexElement,
     leaf: Leaf,
+    #[serde(deserialize_with = "deserialize_null_as_empty_vec", default)]
     proof: Vec<Hash256>,
 }
 
